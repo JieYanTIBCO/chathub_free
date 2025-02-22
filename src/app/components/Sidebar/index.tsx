@@ -13,16 +13,12 @@ import minimalLogo from '~/assets/minimal-logo.svg'
 import logo from '~/assets/santa-logo.png'
 import { cx } from '~/utils'
 import { useEnabledBots } from '~app/hooks/use-enabled-bots'
-import { releaseNotesAtom, showDiscountModalAtom, sidebarCollapsedAtom } from '~app/state'
-import { getPremiumActivation } from '~services/premium'
+import { releaseNotesAtom, sidebarCollapsedAtom } from '~app/state'
 import { checkReleaseNotes } from '~services/release-notes'
-import * as api from '~services/server-api'
-import { getAppOpenTimes, getPremiumModalOpenTimes } from '~services/storage/open-times'
 import GuideModal from '../GuideModal'
 import ThemeSettingModal from '../ThemeSettingModal'
 import Tooltip from '../Tooltip'
 import NavLink from './NavLink'
-import PremiumEntry from './PremiumEntry'
 
 function IconButton(props: { icon: string; onClick?: () => void }) {
   return (
@@ -40,26 +36,12 @@ function Sidebar() {
   const [collapsed, setCollapsed] = useAtom(sidebarCollapsedAtom)
   const [themeSettingModalOpen, setThemeSettingModalOpen] = useState(false)
   const enabledBots = useEnabledBots()
-  const setShowDiscountModal = useSetAtom(showDiscountModalAtom)
   const setReleaseNotes = useSetAtom(releaseNotesAtom)
 
   useEffect(() => {
-    Promise.all([getAppOpenTimes(), getPremiumModalOpenTimes(), checkReleaseNotes()]).then(
-      async ([appOpenTimes, premiumModalOpenTimes, releaseNotes]) => {
-        if (!getPremiumActivation()) {
-          const { show, campaign } = await api.checkDiscount({ appOpenTimes, premiumModalOpenTimes })
-          if (show) {
-            setShowDiscountModal(true)
-            return
-          }
-          if (campaign) {
-            setShowDiscountModal(campaign)
-            return
-          }
-        }
-        setReleaseNotes(releaseNotes)
-      },
-    )
+    checkReleaseNotes().then((releaseNotes) => {
+      setReleaseNotes(releaseNotes)
+    })
   }, [])
 
   return (
@@ -93,11 +75,6 @@ function Sidebar() {
       </div>
       <div className="mt-auto pt-2">
         {!collapsed && <hr className="border-[#ffffff4d]" />}
-        {!collapsed && (
-          <div className="my-5">
-            <PremiumEntry text={t('Premium')} />
-          </div>
-        )}
         <div className={cx('flex mt-5 gap-[10px] mb-4', collapsed ? 'flex-col' : 'flex-row ')}>
           {!collapsed && (
             <Tooltip content={t('GitHub')}>
